@@ -8,6 +8,7 @@ from solutioncallbacks import MatchSolutionCounter
 Person_t = str
 Couple_t = Tuple[str,str]
 
+
 class AreYouTheOne:
     def __init__(self, men: List[Person_t], women: List[Person_t]):
         if len(men) != len(women):
