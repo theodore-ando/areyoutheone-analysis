@@ -2,9 +2,10 @@ from typing import List
 
 import pandas as pd
 from ortools.sat.python.cp_model import CpModel, CpSolver
+from pandas.io.formats.style import Styler
 
-from solutioncallbacks import MatchSolutionCounter, CompositeSolutionCallback
-from utils import Person_t, Couple_t
+from solutioncallbacks import MatchSolutionCounter, CompositeSolutionCallback, SolutionScorerCallback
+from utils import Person_t, Couple_t, Matching_t
 
 
 class AreYouTheOne:
@@ -18,7 +19,6 @@ class AreYouTheOne:
         self.model = CpModel()
         self.solver = CpSolver()
         self.solver.parameters.enumerate_all_solutions = True
-        self.counter: MatchSolutionCounter = None
 
         # x_(m,w) is 1 if the couple (m,w) is a match, 0 otherwise
         self.x = {
@@ -26,6 +26,8 @@ class AreYouTheOne:
             for m in men
             for w in women
         }
+        self.counter = MatchSolutionCounter(self.x)
+        self.scorer = SolutionScorerCallback(self.x)
 
         # ensure each woman only has 1 match
         for w in women:
@@ -43,10 +45,11 @@ class AreYouTheOne:
 
     def solve(self, solution_callback=None, **kwargs) -> MatchSolutionCounter:
         self.counter = MatchSolutionCounter(self.x, **kwargs)
+        self.scorer = SolutionScorerCallback(self.x)
         if solution_callback is not None:
-            solution_callback = CompositeSolutionCallback([self.counter, solution_callback])
+            solution_callback = CompositeSolutionCallback([self.counter, self.scorer, solution_callback])
         else:
-            solution_callback = self.counter
+            solution_callback = CompositeSolutionCallback([self.counter, self.scorer])
         self.solver.Solve(self.model, solution_callback)
         return self.counter
 
@@ -76,11 +79,15 @@ class AreYouTheOne:
         # isn't this actually just the couple with p closest to 0.5?
         return min(couples, key=lambda c: exp_solns[c])
 
-    def active_search_truth_booth(self, couples: List[Couple_t]) -> Couple_t:
-        """"""
-        raise NotImplemented()
+    def min_expected_matching(self) -> Matching_t:
+        """Pick the matching that provides the min expected number of remaining solutions"""
+        return self.scorer.min_expected_matching()
 
-    def display(self):
+    def evaluate_matching(self, matching: Matching_t) -> float:
+        """Pick the matching that provides the min expected number of remaining solutions"""
+        return self.scorer.evaluate_matching(matching)
+
+    def display(self) -> Styler:
         counts = self.counter.counts()
         df = pd.DataFrame(
             data=[[counts[(m, w)] for w in self.women] for m in self.men],
@@ -90,10 +97,10 @@ class AreYouTheOne:
         return df.style.background_gradient(axis=None) \
             .set_caption(f"Number of Matches in {self.counter.n_solutions()} Solutions") \
             .set_table_styles([{
-            'selector': 'caption',
-            'props': [
-                ('color', 'black'),
-                ('font-size', '16pt'),
-                ('caption-side', 'center')
-            ]
-        }])
+                'selector': 'caption',
+                'props': [
+                    ('color', 'black'),
+                    ('font-size', '16pt'),
+                    ('caption-side', 'center')
+                ]
+            }])
