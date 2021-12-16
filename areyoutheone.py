@@ -1,12 +1,10 @@
-from typing import List, Tuple
+from typing import List
 
 import pandas as pd
 from ortools.sat.python.cp_model import CpModel, CpSolver
 
-from solutioncallbacks import MatchSolutionCounter
-
-Person_t = str
-Couple_t = Tuple[str,str]
+from solutioncallbacks import MatchSolutionCounter, CompositeSolutionCallback
+from utils import Person_t, Couple_t
 
 
 class AreYouTheOne:
@@ -43,9 +41,13 @@ class AreYouTheOne:
     def add_truth_booth(self, m: str, w: str, perfect: bool):
         self.model.Add(self.x[(m, w)] == int(perfect))
 
-    def solve(self, **kwargs) -> MatchSolutionCounter:
+    def solve(self, solution_callback=None, **kwargs) -> MatchSolutionCounter:
         self.counter = MatchSolutionCounter(self.x, **kwargs)
-        self.solver.Solve(self.model, self.counter)
+        if solution_callback is not None:
+            solution_callback = CompositeSolutionCallback([self.counter, solution_callback])
+        else:
+            solution_callback = self.counter
+        self.solver.Solve(self.model, solution_callback)
         return self.counter
 
     def minmax_truth_booth(self, couples: List[Couple_t]) -> Couple_t:
@@ -64,8 +66,8 @@ class AreYouTheOne:
         exp_solns = {}
         N = self.counter.n_solutions()
         for couple in couples:
-            p0 = 1 - self.counter.counts()[couple]/N
-            p1 = self.counter.counts()[couple]/N
+            p0 = 1 - self.counter.counts()[couple] / N
+            p1 = self.counter.counts()[couple] / N
 
             n0 = N - self.counter.counts()[couple]
             n1 = self.counter.counts()[couple]
@@ -88,10 +90,10 @@ class AreYouTheOne:
         return df.style.background_gradient(axis=None) \
             .set_caption(f"Number of Matches in {self.counter.n_solutions()} Solutions") \
             .set_table_styles([{
-                'selector': 'caption',
-                'props': [
-                    ('color', 'black'),
-                    ('font-size', '16pt'),
-                    ('caption-side', 'center')
-                ]
-            }])
+            'selector': 'caption',
+            'props': [
+                ('color', 'black'),
+                ('font-size', '16pt'),
+                ('caption-side', 'center')
+            ]
+        }])
