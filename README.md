@@ -9,6 +9,9 @@ show's matchmakers.  In each round of the game, there are three stages:
 3. people form couples (any matching is allowed) and the host informs them of how many correct matches they got (but
     not which couples are correct)
 
-We model this by the following constraint problem.  Let $i, j \in [1,10]$.  Let $x_{i,j}$ be the $[0,1]$ variable 
-representing whether man $i$ and woman $j$ are matched together.  Then:
-$$\sum_{j=1}^{10} x_{i,j} = 1 \qquad \forall i \in [1,10]$$
+We can model this using integer constraint programming to encode the constraints imposed by learning the outcome of the
+Truth Booth or the matching ceremony.  See the [notebook](https://github.com/theodore-ando/areyoutheone-analysis/blob/master/AreYouTheOneAnalysis.ipynb) 
+for more analysis (markdown won't render math).
+
+See [areyoutheone.py](https://github.com/theodore-ando/areyoutheone-analysis/blob/master/areyoutheone.py) for the main 
+class you can interact with.
