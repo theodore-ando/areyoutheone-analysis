@@ -1,5 +1,5 @@
 from math import sqrt, ceil
-from typing import List
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,15 +22,16 @@ class AreYouTheOne:
         self.men = men
         self.women = women
         self.truth_booths = {}
+        self.black_out_couples = []
         self.model = CpModel()
         self.solver = CpSolver()
         self.solver.parameters.enumerate_all_solutions = True
 
         # x_(m,w) is 1 if the couple (m,w) is a match, 0 otherwise
         self.x = {
-                (m, w): self.model.NewBoolVar(f"Match({m}, {w})")
-                for m in men
-                for w in women
+            (m, w): self.model.NewBoolVar(f"Match({m}, {w})")
+            for m in men
+            for w in women
         }
         self.counter = MatchSolutionCounter(self.x)
         self.scorer = SolutionScorerCallback(self.x)
@@ -43,11 +44,16 @@ class AreYouTheOne:
         for m in men:
             self.model.Add(1 == sum(self.x[(m, w)] for w in women))
 
+    def _couple2index(self, mw: Couple_t) -> Tuple[int, int]:
+        return self.men.index(mw[0]), self.women.index(mw[1])
+
     def add_matching_ceremony(self, n_perfect: int, matches: List[Couple_t]):
         self.model.Add(n_perfect == sum(self.x[mw] for mw in matches))
+        if n_perfect == 0:
+            self.black_out_couples.extend(map(self._couple2index, matches))
 
     def add_truth_booth(self, m: str, w: str, perfect: bool):
-        self.truth_booths[(self.men.index(m), self.women.index(w))] = int(perfect)
+        self.truth_booths[self._couple2index((m, w))] = int(perfect)
         self.model.Add(self.x[(m, w)] == int(perfect))
 
     def solve(self, solution_callback=None, **kwargs) -> MatchSolutionCounter:
@@ -125,9 +131,12 @@ class AreYouTheOne:
         tb_match_rows = {i for (i, j), b in self.truth_booths.items() if b == 1}
         tb_match_cols = {j for (i, j), b in self.truth_booths.items() if b == 1}
         inferred_nonmatches = {
-                (i, j)
-                for (i, j) in zip(*loc_nonmatches)
-                if (i not in tb_match_rows) and (j not in tb_match_cols) and ((i, j) not in self.truth_booths)
+            (i, j)
+            for (i, j) in zip(*loc_nonmatches)
+            if (i not in tb_match_rows)
+               and (j not in tb_match_cols)
+               and ((i, j) not in self.truth_booths)
+               and ((i, j) not in self.black_out_couples)
         }
         for (i, j) in inferred_nonmatches:
             # note that Rectangle loc is (x,y) not (row,col) hence we flip i,j
