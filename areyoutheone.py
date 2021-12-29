@@ -169,7 +169,7 @@ class AreYouTheOne:
         ax0.axvline(expected_n_sols, color='r')
 
         # plot the distribution of expected number of lights, along with their choice
-        ax1.set_title('Distribution of E[\# of lights]')
+        ax1.set_title('Distribution of E[# of lights]')
         ax1.set_ylabel('frequency')
         ax1.set_xlabel('E[# of lights]')
         sns.histplot(self.scorer.lights(), ax=ax1)
