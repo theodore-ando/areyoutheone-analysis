@@ -2,3 +2,4 @@ ortools==9.2.9972
 pandas==1.3.5
 matplotlib~=3.5.1
 numpy~=1.21.4
+seaborn~=0.11.2

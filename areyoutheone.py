@@ -1,13 +1,11 @@
-from math import sqrt, ceil
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 from matplotlib.patches import Rectangle
 from ortools.sat.python.cp_model import CpModel, CpSolver
-from pandas.io.formats.style import Styler
 
 from solutioncallbacks import MatchSolutionCounter, CompositeSolutionCallback, SolutionScorerCallback
 from utils import Person_t, Couple_t, Matching_t
@@ -69,9 +67,9 @@ class AreYouTheOne:
     def minmax_truth_booth(self, couples: List[Couple_t]) -> Couple_t:
         """Pick the couple that provides the min max number of possible remaining solutions"""
         max_solutions = {}
-        N = self.counter.n_solutions()
+        n = self.counter.n_solutions()
         for couple in couples:
-            n0 = N - self.counter.counts()[couple]
+            n0 = n - self.counter.counts()[couple]
             n1 = self.counter.counts()[couple]
             max_solutions[couple] = max(n0, n1)
         print(max_solutions)
@@ -105,6 +103,11 @@ class AreYouTheOne:
         return self.scorer.expected_lights(matching)
 
     def display(self):
+        """
+        Display a table of men x women, denoting for each pair how many valid solutions remain in which they are a
+        couple (aka probability they are a couple).  The table highlights with red or green fill known non/matches
+        from truth booths.  Similarly, red/green outline for known non/matches that are inferred from other constraints.
+        """
         counts = self.counter.counts()
         df = pd.DataFrame(
             data=[[counts[(m, w)] for w in self.women] for m in self.men],
@@ -147,6 +150,12 @@ class AreYouTheOne:
                 ax.add_patch(Rectangle((j, i), 1, 1, color='green', fill=False, lw=1))
 
     def display_distributions(self, matching: Matching_t):
+        """
+        Displays 1) the distribution of expected number of remaining solutions and 2) distribution of expected lights
+        at the matching ceremony.  On each plot, highlight where the given `matching` falls in the distribution.
+        :param matching:
+        :return:
+        """
         expected_n_sols = self.evaluate_matching(matching)
         expected_n_lights = self.expected_lights(matching)
 

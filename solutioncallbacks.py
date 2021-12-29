@@ -21,11 +21,8 @@ class CompositeSolutionCallback(MySolutionCallback):
             callback.set_solver(self)
 
     def on_solution_callback(self):
-        try:
-            for callback in self.callbacks:
-                callback.OnSolutionCallback()
-        except Exception as e:
-            print("composite:", e)
+        for callback in self.callbacks:
+            callback.OnSolutionCallback()
 
 
 class MatchSolutionCounter(MySolutionCallback):
